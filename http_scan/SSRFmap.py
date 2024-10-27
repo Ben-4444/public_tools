@@ -18,10 +18,10 @@ METHODE_HTTP_DEFAULT = "GET"
 URL_DEFAULT = "http://tp8.esdown.local/external.php?procedure_url=http://localhost:"
 DATA_HTTP_DEFAULT = ""
 ERREUR_DEFAULT = "Failed to open stream: Connection refused"
-COOKIE_PHPSESSID_DEFAULT = "13aa3cb93f4b86428883f53a302657fc"  
-PORT_START_DEFAULT = 1
-PORT_STOP_DEFAULT = 65535
-THREADS_DEFAULT = 20 #attention au ddos
+COOKIE_PHPSESSID_DEFAULT = "13aa3cb93f4b86428883f53a302657fc"
+PORT_START_DEFAULT = 50
+PORT_STOP_DEFAULT = 100
+THREADS_DEFAULT = 20
 
 
 
@@ -38,6 +38,7 @@ from requests.packages.urllib3.util.retry import Retry # type: ignore
 import signal
 import threading
 from colorama import init, Fore, Back, Style
+import os
 
 
 ########################################################
@@ -196,6 +197,31 @@ def start_scan(stdscr, URL, ERREUR, COOKIE, PLAGE_PORTS, THREADS, debut, fin, ME
 
     return ports_ouverts, temps_execution
 
+def sauvegarder_config(URL, METHODE_HTTP, ERREUR, COOKIE_PHPSESSID, debut, fin, THREADS, DATA_HTTP):
+    with open(__file__, 'r') as file:
+        lines = file.readlines()
+
+    for i, line in enumerate(lines):
+        if line.startswith('URL_DEFAULT'):
+            lines[i] = f'URL_DEFAULT = "{URL}"\n'
+        elif line.startswith('METHODE_HTTP_DEFAULT'):
+            lines[i] = f'METHODE_HTTP_DEFAULT = "{METHODE_HTTP}"\n'
+        elif line.startswith('ERREUR_DEFAULT'):
+            lines[i] = f'ERREUR_DEFAULT = "{ERREUR}"\n'
+        elif line.startswith('COOKIE_PHPSESSID_DEFAULT'):
+            lines[i] = f'COOKIE_PHPSESSID_DEFAULT = "{COOKIE_PHPSESSID}"\n'
+        elif line.startswith('PORT_START_DEFAULT'):
+            lines[i] = f'PORT_START_DEFAULT = {debut}\n'
+        elif line.startswith('PORT_STOP_DEFAULT'):
+            lines[i] = f'PORT_STOP_DEFAULT = {fin}\n'
+        elif line.startswith('THREADS_DEFAULT'):
+            lines[i] = f'THREADS_DEFAULT = {THREADS}\n'
+        elif line.startswith('DATA_HTTP_DEFAULT'):
+            lines[i] = f'DATA_HTTP_DEFAULT = "{DATA_HTTP}"\n'
+
+    with open(__file__, 'w') as file:
+        file.writelines(lines)
+
 # Demander à l'utilisateur de saisir les variables
 def demander_config():
     try:
@@ -219,6 +245,7 @@ def demander_config():
         print(Fore.CYAN + f"THREADS : {THREADS}" + Style.RESET_ALL)
         print(Fore.CYAN + "----------------------------------------" + Style.RESET_ALL)
 
+        config_modifiee = False
         if input("Utiliser la config du code ? (O/n) : ") == "n":
             URL = input(Fore.CYAN + f"Entrez l'URL ou par defaut : {URL_DEFAULT} : " + Style.RESET_ALL) or URL_DEFAULT
             if not URL.endswith(':'):
@@ -234,6 +261,11 @@ def demander_config():
             PLAGE_PORTS = range(debut, fin + 1)
             THREADS = int(input(Fore.CYAN + f"Entrez le nombre de threads ou par defaut : {THREADS_DEFAULT} (conseillé) : " + Style.RESET_ALL) or THREADS_DEFAULT)
             print(Fore.CYAN + "----------------------------------------" + Style.RESET_ALL)
+            config_modifiee = True
+
+        if config_modifiee:
+            sauvegarder_config(URL, METHODE_HTTP, ERREUR, COOKIE_PHPSESSID, debut, fin, THREADS, DATA_HTTP)
+            print(Fore.GREEN + "Configuration sauvegardée dans le code." + Style.RESET_ALL)
         
         return URL, ERREUR, COOKIE, PLAGE_PORTS, THREADS, debut, fin, METHODE_HTTP, DATA_HTTP
     except KeyboardInterrupt:
@@ -251,4 +283,3 @@ def main_scan():
     for port in ports_ouverts:
         print(Fore.RED + f"Port {port} ouvert : {URL}{port}" + Style.RESET_ALL)
 
-main_scan()
